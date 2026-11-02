@@ -31,14 +31,12 @@ const canvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height
 function speckle(g,w,h,n,cols,a){for(let i=0;i<n;i++){g.globalAlpha=a*rnd();g.fillStyle=cols[(rnd()*cols.length)|0];g.fillRect(rnd()*w,rnd()*h,1+rnd()*2,1+rnd()*2)}g.globalAlpha=1}
 const shade=(hex,k)=>{const c=new THREE.Color(hex);c.multiplyScalar(k);return '#'+c.getHexString()};
 const col=new THREE.Color(),dummy=new THREE.Object3D();
-// the earlier site sketch was traced from the satellite at a slightly smaller scale; the drawings fix the true scale
-const KX=1.078,KZ=1.109,ko=(x,z)=>[x*KX,z*KZ];
-// ---------- terrain: the gym stands on a ~4 m plateau, reached by a ramp east of 9동 ----------
+// site plan in true metres (x east, z south along the campus grid, which runs 10.25° clockwise of true north), traced from a satellite photo
+// ---------- terrain: the gym and its car park stand on a ~4 m plateau, reached by a ramp down the main road ----------
 const HILL=4;
-const plateau=(x,z)=>sm((z-88.6)/1.4)*(1-sm((z-141)/8))*sm((x+46)/5)*(1-sm((x-15)/2));
-const rampF=(x,z)=>sm((z-66)/28)*(1-sm((z-141)/8))*sm((x-13)/1.5)*(1-sm((x-27)/2));
+const plateau=(x,z)=>sm((z-103.2)/1.4)*(1-sm((z-155)/5))*sm((x+64)/4)*(1-sm((x-27)/2));
+const rampF=(x,z)=>sm((z-64)/36)*(1-sm((z-155)/5))*sm((x-11.5)/1.5)*(1-sm((x-24.5)/2));
 const GH=(x,z)=>HILL*Math.max(plateau(x,z),rampF(x,z));
-// ---------- field (traced earlier in the old units) ----------
-const FIELD={x:47,z:-42,r:43.5,half:29};
-function inStadiumOld(x,z,pad){const dx=x-FIELD.x,dz=z-FIELD.z,r=FIELD.r+pad;if(Math.abs(dz)<=FIELD.half)return Math.abs(dx)<r;const cz=dz>0?FIELD.half:-FIELD.half;return dx*dx+(dz-cz)**2<r*r}
-const inStadium=(x,z,pad)=>inStadiumOld(x/KX,z/KZ,pad);
+// ---------- field: sand track (stadium outline) round an artificial-turf pitch ----------
+const FIELD={x:65.75,z:-19.25,r:41.5,half:41.5,turf:[38,-70,101,31]};
+function inStadium(x,z,pad){const dx=x-FIELD.x,dz=z-FIELD.z,r=FIELD.r+pad;if(Math.abs(dz)<=FIELD.half)return Math.abs(dx)<r;const cz=dz>0?FIELD.half:-FIELD.half;return dx*dx+(dz-cz)**2<r*r}

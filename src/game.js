@@ -137,7 +137,7 @@ function setTool(t){tool=t;document.querySelectorAll('.tool').forEach(b=>b.setAt
 document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>{audio();setTool(b.dataset.tool)}));
 $('#reset').addEventListener('click',()=>{resetAll();toast('다시 지었어요')});
 $('#mute').addEventListener('click',e=>{muted=!muted;e.currentTarget.textContent=muted?'소리 꺼짐':'소리 켜짐';e.currentTarget.setAttribute('aria-pressed',muted);if(muted)laserSound(false)});
-const HOME=[[150,170,240],[-25,0,5]];let tw=null;
+const HOME=[[160,170,250],[-10,0,15]];let tw=null;
 $('#home').addEventListener('click',()=>{tw={fp:cam.position.clone(),ft:C.target.clone(),tp:new V3(...HOME[0]),tt:new V3(...HOME[1]),t:0}});
 let night=false;
 function setNight(on){night=on;$('#night').setAttribute('aria-pressed',on);S.background=on?SKY_NIGHT:SKY_DAY;S.fog.color.set(on?0x1a2333:0xd3dde6);

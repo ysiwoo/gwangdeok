@@ -2,7 +2,7 @@
 // ---------- static building meshes (one instanced mesh per building · floor · material) ----------
 const pickables=[];
 const originOf=b=>new THREE.Vector3(b.X0,b.base||0,b.Z0);
-function instParts(list,b,sizeFn){const {mat}=matFor(list[0]);const geo=new THREE.BoxGeometry(1,1,1),n=list.length,o=originOf(b);
+function instParts(list,b,sizeFn){const {mat}=matFor(list[0]);const geo=list[0].round?new THREE.CylinderGeometry(.5,.5,1,20):new THREE.BoxGeometry(1,1,1),n=list.length,o=originOf(b);
   const ar=new Float32Array(n*3),as=new Float32Array(n*3);
   const mesh=new THREE.InstancedMesh(geo,mat,n);
   list.forEach((p,i)=>{const q=sizeFn?sizeFn(p):p;dummy.position.set(q.x,q.y,q.z);dummy.rotation.set(0,0,0);dummy.scale.set(q.sx,q.sy,q.sz);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
@@ -13,18 +13,30 @@ BLD.forEach(b=>{b.groups=new Map();const bk=new Map();
   GEN.parts.forEach(p=>{if(p.b!==b)return;if(b.hip&&(p.k==='roof'||p.k==='para'))return;const k=p.f+'|'+p.m;if(!bk.has(k))bk.set(k,[]);bk.get(k).push(p)});
   bk.forEach((list,k)=>{const f=list[0].f;if(!b.groups.has(f)){const g=new THREE.Group();g.userData.b=b;b.groups.set(f,g);S.add(g)}
     const m=instParts(list,b);b.groups.get(f).add(m);pickables.push(m)})});
-// 복지관: hip roof over the first floor's centre bay, lean-to roofs on both sides (from the roof plan)
-{const b=BLD.find(x=>x.id==='bokji');const [c,x]=canvas(256,256);x.fillStyle=b.roof;x.fillRect(0,0,256,256);for(let i=0;i<256;i+=12){x.fillStyle=shade(b.roof,.82);x.fillRect(i,0,3,256)}
-  const rm=new THREE.MeshStandardMaterial({map:tex(c),roughness:.45,metalness:.5,envMapIntensity:.9,side:THREE.DoubleSide});b.extra=[];
-  function quadsMesh(tris){const pos=[],uv=[];tris.forEach(t=>t.forEach(([u,v,y])=>{const[X,Z]=toW(b,u,v);pos.push(X,y,Z);uv.push(X/6,Z/6)}));
-    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.computeVertexNormals();
-    const m=new THREE.Mesh(geo,rm);m.castShadow=m.receiveShadow=true;m.userData.b=b;S.add(m);pickables.push(m);return m}
-  const o=.6,y2=7.2-SLAB,H=2.6,u0=-o,u1=47.2+o,v0=3-o,v1=10.8+o,hw=(v1-v0)/2,vm=(v0+v1)/2;
-  const A=[u0,v0,y2],B=[u1,v0,y2],Cc=[u1,v1,y2],D=[u0,v1,y2],E=[u0+hw,vm,y2+H],F=[u1-hw,vm,y2+H];
-  b.extra.push({m:quadsMesh([[A,B,F],[A,F,E],[Cc,D,E],[Cc,E,F],[B,Cc,F],[D,A,E]]),f:2});
-  const shed=(ua,ub,vIn,vOut,yIn,yOut)=>quadsMesh([[[ua,vIn,yIn],[ub,vIn,yIn],[ub,vOut,yOut]],[[ua,vIn,yIn],[ub,vOut,yOut],[ua,vOut,yOut]]]);
-  const y1=3.6-SLAB;[[0,18.1],[26.3,47.2]].forEach(([a,c2])=>b.extra.push({m:shed(a,c2,3,-.5,y1+1.1,y1),f:1}));b.extra.push({m:shed(0,47.2,10.8,15.3,y1+1.1,y1),f:1});
-  b.extra.push({m:shed(18.1,26.3,1.5,-.4,y2+.4,y2),f:2},{m:shed(18.1,26.3,1.5,3,y2+.4,y2),f:2});b.extra.push({m:shed(47.2,56.7,3.4,2,y2+.3,y2),f:2},{m:shed(47.2,56.7,3.4,4.8,y2+.3,y2),f:2})}
+// 복지관: green glazed-tile roof with up-turned corners over the second floor and a tiled skirt round the first floor (roof plan + photos)
+{const b=BLD.find(x=>x.id==='bokji');const [c,x]=canvas(256,256);x.fillStyle=shade(b.roof,.75);x.fillRect(0,0,256,256);
+  for(let i=0;i<256;i+=16){const gr=x.createLinearGradient(i,0,i+16,0);gr.addColorStop(0,shade(b.roof,.62));gr.addColorStop(.5,shade(b.roof,1.2));gr.addColorStop(1,shade(b.roof,.62));x.fillStyle=gr;x.fillRect(i+1,0,14,256)}
+  for(let j=0;j<256;j+=32){x.fillStyle='rgba(0,0,0,.25)';x.fillRect(0,j,256,3)}
+  const rm=new THREE.MeshStandardMaterial({map:tex(c),roughness:.32,metalness:.2,envMapIntensity:1.1,side:THREE.DoubleSide}),cap=plainMat(0x2c5a50,{roughness:.4});b.extra=[];
+  const add=(geo,mat)=>{const m=new THREE.Mesh(geo,mat||rm);m.castShadow=m.receiveShadow=true;m.userData.b=b;S.add(m);pickables.push(m);return m};
+  // one roof face swept from an eave line (e0→e1) up to a ridge line (r0→r1); the slope sags a little and the eave curls up at both corners
+  function face(e0,e1,r0,r1,curl,ns){const nt=5,pos=[],uv=[],idx=[],L=Math.hypot(e1[0]-e0[0],e1[1]-e0[1]),rise=Math.hypot(r0[0]-e0[0],r0[1]-e0[1],r0[2]-e0[2]);
+    for(let j=0;j<=nt;j++)for(let i=0;i<=ns;i++){const s=i/ns,t=j/nt,eu=e0[0]+(e1[0]-e0[0])*s,ev=e0[1]+(e1[1]-e0[1])*s;
+      const u=eu+(r0[0]+(r1[0]-r0[0])*s-eu)*t,v=ev+(r0[1]+(r1[1]-r0[1])*s-ev)*t;
+      const y=e0[2]+(r0[2]-e0[2])*t-.18*rise/3*Math.sin(Math.PI*t)+curl*Math.pow(Math.abs(2*s-1),3)*(1-t)*(1-t);
+      const[X,Z]=toW(b,u,v);pos.push(X,y,Z);uv.push(s*L/2.4,t*rise/2.4)}
+    for(let j=0;j<nt;j++)for(let i=0;i<ns;i++){const a=j*(ns+1)+i;idx.push(a,a+1,a+ns+2,a,a+ns+2,a+ns+1)}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setIndex(idx);geo.computeVertexNormals();return add(geo)}
+  const roof=(f,list)=>{const g=new THREE.Group();list.forEach(m=>{S.remove(m);g.add(m)});S.add(g);b.extra.push({m:g,f})};
+  // main roof: long ridge, short steep hips (reads like a 팔작 roof from the ground)
+  const o=1.2,y2=7.2-SLAB,H=3.5,u0=-o,u1=47.2+o,v0=3-o,v1=10.8+o,vm=(v0+v1)/2,g=(v1-v0)*.36,yR=y2+H;
+  const ridge=add(new THREE.BoxGeometry(1,1,1),cap);{const[x0,z0]=toW(b,u0+g,vm),[x1,z1]=toW(b,u1-g,vm);ridge.position.set((x0+x1)/2,yR+.12,(z0+z1)/2);ridge.scale.set(Math.max(.4,Math.abs(x1-x0)),.32,Math.max(.4,Math.abs(z1-z0)))}
+  roof(2,[face([u0,v0,y2],[u1,v0,y2],[u0+g,vm,yR],[u1-g,vm,yR],.9,24),face([u1,v1,y2],[u0,v1,y2],[u1-g,vm,yR],[u0+g,vm,yR],.9,24),
+    face([u0,v1,y2],[u0,v0,y2],[u0+g,vm,yR],[u0+g,vm,yR],.9,8),face([u1,v0,y2],[u1,v1,y2],[u1-g,vm,yR],[u1-g,vm,yR],.9,8),ridge]);
+  // tiled skirts round the first floor and over the link to the middle school
+  const shed=(ua,ub,vIn,vOut,yIn,yOut,curl)=>face([ua,vOut,yOut],[ub,vOut,yOut],[ua,vIn,yIn],[ub,vIn,yIn],curl,16);
+  const y1=3.6-SLAB;roof(1,[...[[0,18.1],[26.3,47.2]].map(([a,c2])=>shed(a,c2,3,-1,y1+1.4,y1,.45)),shed(0,47.2,10.8,15.8,y1+1.4,y1,.45)]);
+  roof(2,[shed(18.1,26.3,1.5,-.4,y2+.4,y2,.15),shed(18.1,26.3,1.5,3,y2+.4,y2,.15),shed(47.2,56.7,3.4,2,y2+.3,y2,.1),shed(47.2,56.7,3.4,4.8,y2+.3,y2,.1)])}
 // ---------- labels ----------
 const labelsEl=$('#labels');
 BLD.forEach(b=>{const el=document.createElement('div');el.className='lbl';el.textContent=b.n;el.addEventListener('click',()=>showInfo(b));labelsEl.appendChild(el);b.el=el;b.anchor=new THREE.Vector3(b.cx,b.top+3,b.cz)});
@@ -71,8 +83,8 @@ R.domElement.addEventListener('pointerdown',e=>{downAt=[e.clientX,e.clientY];tw=
 R.domElement.addEventListener('pointerup',e=>{if(!downAt||Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])>6)return;const r=R.domElement.getBoundingClientRect();
   ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,cam);const h=ray.intersectObjects(pickables,false).find(h=>h.object.visible&&h.object.parent&&h.object.parent.visible!==false);if(h&&h.object.userData.b)showInfo(h.object.userData.b)});
 // ---------- views ----------
-const VIEWS={all:[[150,170,240],[-25,0,5]],top:[[-25,430,30],[-25,0,0]],front:[[42,28,4],[-14,8,-20]],road:[[38,55,80],[-6,2,12]],facade:[[72,9,-24],[-25,9,-24]],
-  court:[[-140,70,-110],[-58,6,-20]],garden:[[-10,45,95],[-25,4,45]],gym:[[70,50,170],[-10,8,108]],field:[[170,75,-170],[50,0,-46]]};
+const VIEWS={all:[[160,170,250],[-10,0,15]],top:[[-8,440,22],[-8,0,15]],front:[[40,24,-4],[-14,8,-21]],road:[[17,6,62],[16,4,-90]],facade:[[70,9,-21],[-15,9,-21]],
+  court:[[-150,70,-100],[-59,4,-23]],garden:[[0,45,112],[-28,4,55]],gym:[[60,50,200],[-30,8,128]],field:[[190,75,-150],[66,0,-19]]};
 let tw=null;
 function go(name){const [p,t]=VIEWS[name];tw={fp:cam.position.clone(),ft:C.target.clone(),tp:new THREE.Vector3(...p),tt:new THREE.Vector3(...t),t:0}}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));

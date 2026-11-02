@@ -73,7 +73,7 @@ function genBuilding(b){
 }
 BLD.forEach(genBuilding);
 // building-specific extras from the drawings
-{const m=BLD.find(b=>b.id==='mandae');[25,30,35,40,45,50,55].forEach(u=>{const[x,z]=toW(m,u,21);GEN.parts.push({b:m,k:'col',f:1,m:'col',x,z,y:(3*3.6-SLAB)/2,sx:.8,sz:.8,sy:3*3.6-SLAB})});
+{const m=BLD.find(b=>b.id==='mandae');[25,30,35,40,45,50,55].forEach(u=>{const[x,z]=toW(m,u,21.9);GEN.parts.push({b:m,k:'col',f:1,m:'col',round:true,x,z,y:(3*3.6-SLAB)/2,sx:.9,sz:.9,sy:3*3.6-SLAB})});
  const g=BLD.find(b=>b.id==='gwichon');[[36.1,.4],[43.8,.4],[52.5,.4],[36.1,14.8],[43.8,14.8],[48.3,14.8],[52.8,14.8],[59.1,14.8]].forEach(([u,v])=>{const[x,z]=toW(g,u,v);GEN.parts.push({b:g,k:'col',f:1,m:'col',x,z,y:(3.6-SLAB)/2,sx:.6,sz:.6,sy:3.6-SLAB})});
  const gy=BLD.find(b=>b.id==='gym');{const[x0,z0,x1,z1]=wRect(gy,-1.8,-1.8,46.8,36.8);const yT=y0Of(gy,3);
    GEN.parts.push({b:gy,k:'roof',f:2,m:'roof:'+gy.roof,x:(x0+x1)/2,z:(z0+z1)/2,y:yT+.2,sx:x1-x0,sz:z1-z0,sy:.4});
