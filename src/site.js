@@ -40,7 +40,7 @@ rect(3,-60,12.4,26,ASPH);stalls(3,-60,8.2,26,false);
 rect(-12,-100,12.4,-56,ASPH);stalls(-10,-70,10,-64.5,true);stalls(-10,-62,10,-56.5,true);
 rect(-102,-93,-10,-76,ASPH);stalls(-100,-93,-14,-88,true);stalls(-100,-81,-14,-76,true);
 {g.fillStyle='#6f9a4a';g.beginPath();g.ellipse(GX(-1),GZ(-84),6*gs,4*gs,0,0,7);g.fill()}
-rect(-84,-54.5,-27.5,21,ASPH);stalls(-79,-54.5,-41,-49.5,true);stalls(-33,-46,-27.5,0,false);
+rect(-84,-54.5,-27.5,21,ASPH);rect(-27.5,-56,-5,-44.5,ASPH);stalls(-79,-54.5,-41,-49.5,true);stalls(-33,-46,-27.5,0,false);
 rect(-5,3,12.4,12,ASPH);rect(5.5,12,12.4,38.5,ASPH);rect(-95,32.6,12.4,38.5,ASPH);polyline([[-93,36.2],[10,36.2]],.12,'#f2f1ea');polyline([[-93,34.6],[10,34.6]],.12,'#f2f1ea',[2,2]);
 rect(-86.8,31,-78.6,82,ASPH);
 rect(-6,104,25,153,ASPH);stalls(-4,110,23,115.5,true);stalls(-4,124,23,129.5,true);stalls(-4,138,23,143.5,true);
