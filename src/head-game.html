@@ -1,0 +1,122 @@
+<title>SMASH 광덕고</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gaegu:wght@400;700&family=Gothic+A1:wght@400;600;800&display=swap">
+<style>
+/* Layout: full-bleed 3D campus; chalkboard HUD pinned to the corners; tool tray along the bottom edge */
+:root{
+  --board:#22392f;--board-2:#2d4a3c;--frame:#8a6a45;--chalk:#f2efe6;--chalk-dim:#b7c3b8;
+  --chalk-yellow:#f3d36b;--chalk-pink:#f4a49b;--sky:#bfd8e8;
+  --f-display:"Black Han Sans","Gothic A1",system-ui,sans-serif;
+  --f-chalk:"Gaegu","Gothic A1",system-ui,sans-serif;
+  --f-ui:"Gothic A1",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--sky);color:var(--chalk);font-family:var(--f-ui);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+[hidden]{display:none!important}
+#app{position:relative;height:100%}
+#stage{position:absolute;inset:0}
+#stage canvas{display:block;width:100%;height:100%}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;background:rgba(34,57,47,.88);color:var(--chalk);font:700 12px var(--f-ui);padding:3px 8px;border-radius:4px;white-space:nowrap}
+.hud{position:absolute;inset:0;pointer-events:none;display:grid;grid-template-rows:auto 1fr auto;gap:10px;
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:12px}
+.panel{pointer-events:auto;background:var(--board);border:3px solid var(--frame);border-radius:6px;box-shadow:0 6px 18px rgba(20,30,25,.25)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.brand{padding:8px 14px 9px}
+.brand h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:clamp(22px,4vw,30px);letter-spacing:.02em;line-height:1.1}
+.brand h1 span{color:var(--chalk-yellow)}
+.brand p{margin:2px 0 0;font-family:var(--f-chalk);font-size:16px;color:var(--chalk-dim)}
+.score{padding:8px 12px;display:grid;grid-template-columns:auto auto auto;gap:4px 14px;align-items:end}
+.lblx{font-size:11px;letter-spacing:.08em;color:var(--chalk-dim)}
+.big{font-family:var(--f-display);font-size:30px;line-height:1;color:var(--chalk);font-variant-numeric:tabular-nums}
+.big small{font-size:16px;margin-left:2px}
+.rank{font-family:var(--f-display);font-size:40px;line-height:.9;color:var(--chalk-yellow);min-width:2.2ch;text-align:center}
+.meter{grid-column:1/-1;height:5px;background:rgba(242,239,230,.15);border-radius:3px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--chalk-yellow)}
+.btns{grid-column:1/-1;display:flex;gap:6px}
+.mini{flex:1;font:600 12px var(--f-ui);color:var(--chalk);background:var(--board-2);border:1px solid rgba(242,239,230,.25);border-radius:4px;padding:6px 8px;cursor:pointer;white-space:nowrap}
+.mini:hover{border-color:var(--chalk-yellow)}
+.mini[aria-pressed="true"]{border-color:var(--chalk-yellow);color:var(--chalk-yellow)}
+.mini:focus-visible,.tool:focus-visible{outline:2px solid var(--chalk-yellow);outline-offset:2px}
+.mid{display:flex;justify-content:flex-end;align-items:flex-start;min-height:0}
+.roster{padding:10px 12px;width:210px;display:grid;gap:7px}
+.roster h2{margin:0 0 2px;font:400 15px var(--f-display);color:var(--chalk-dim);letter-spacing:.04em}
+.row{display:grid;grid-template-columns:1fr 70px;gap:8px;align-items:center;font-size:12px}
+.row .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:6px;background:rgba(242,239,230,.15);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--chalk);transition:width .3s}
+.row.down .nm{color:var(--chalk-pink);text-decoration:line-through}
+.row.down .bar i{background:var(--chalk-pink)}
+.bottom{display:grid;justify-items:center;gap:8px}
+.hint{font-family:var(--f-chalk);font-size:18px;font-weight:700;color:#1d2b24;background:rgba(242,239,230,.88);padding:2px 12px;border-radius:4px;text-align:center}
+.tray{padding:6px;display:flex;gap:6px}
+.tool{display:grid;justify-items:center;gap:1px;min-width:60px;padding:6px 6px 5px;background:var(--board-2);border:2px solid transparent;border-radius:5px;color:var(--chalk);cursor:pointer;font-family:var(--f-chalk);font-size:17px;font-weight:700;line-height:1.1}
+.tool svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tool .k{font:600 10px var(--f-ui);color:var(--chalk-dim)}
+.tool[aria-pressed="true"]{border-color:var(--chalk-yellow);color:var(--chalk-yellow);background:var(--board)}
+.toast{position:absolute;left:50%;top:calc(110px + env(safe-area-inset-top,0px));transform:translate(-50%,-8px);opacity:0;transition:opacity .25s,transform .25s;
+  font-family:var(--f-chalk);font-weight:700;font-size:clamp(20px,4.5vw,28px);color:var(--chalk);background:var(--board);border:3px solid var(--frame);border-radius:6px;padding:4px 16px;white-space:nowrap;pointer-events:none;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast b{color:var(--chalk-pink);font-weight:700}
+#flash{position:absolute;inset:0;background:#fff8e6;opacity:0;pointer-events:none}
+#loading{position:absolute;inset:0;display:grid;place-items:center;font:400 28px var(--f-display);color:#22392f;pointer-events:none}
+@media (max-width:760px){.roster{display:none}.tool{min-width:54px;font-size:15px}.tool .k{display:none}.big{font-size:24px}.rank{font-size:32px}}
+@media (max-width:420px){.tool{min-width:48px;padding-inline:3px}.brand p{display:none}.score{gap:4px 10px}}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}.bar i{transition:none}}
+</style>
+
+<div id="app">
+  <div id="stage"></div>
+  <div id="labels"></div>
+  <div id="flash"></div>
+  <div id="loading">캠퍼스 짓는 중…</div>
+  <div class="hud">
+    <div class="top">
+      <div class="panel brand">
+        <h1>SMASH <span>광덕고</span></h1>
+        <p>광주 서구 화정로 202 · 시험기간 스트레스 해소</p>
+      </div>
+      <div class="panel score">
+        <div><div class="lblx">점수</div><div class="big" id="score">0</div></div>
+        <div><div class="lblx">파괴율</div><div class="big"><span id="pct">0</span><small>%</small></div></div>
+        <div><div class="lblx">랭크</div><div class="rank" id="rank">D</div></div>
+        <div class="meter"><i id="meter"></i></div>
+        <div class="lblx" style="grid-column:1/-1">무너진 건물 <span id="fallen">0</span> / <span id="total">8</span>동</div>
+        <div class="btns">
+          <button class="mini" id="reset" type="button">다시 짓기</button>
+          <button class="mini" id="night" type="button" aria-pressed="false">밤</button>
+          <button class="mini" id="home" type="button">처음 시점</button>
+          <button class="mini" id="mute" type="button" aria-pressed="false">소리 켜짐</button>
+        </div>
+      </div>
+    </div>
+    <div class="mid">
+      <div class="panel roster" id="roster"><h2>건물 상태</h2></div>
+    </div>
+    <div class="bottom">
+      <div class="hint" id="hint">누른 곳에 폭탄을 떨어뜨려요</div>
+      <div class="panel tray" role="toolbar" aria-label="부수는 도구">
+        <button class="tool" type="button" data-tool="bomb" aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="14" r="7"/><path d="M14.5 8.5 17 6M17 6l1.5-1.5M19 3l1 1M21 6h-1.5"/></svg>폭탄<span class="k">1</span></button>
+        <button class="tool" type="button" data-tool="bat" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-2 0-9 7-12.5 11.5L5 18l1 1 2.5-2.5C13 13 20 6 20 4z"/><path d="M5 18l-2 2"/></svg>배트<span class="k">2</span></button>
+        <button class="tool" type="button" data-tool="laser" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l10 10"/><path d="M14 14l2 6M14 14l6 2M14 14l5-1"/></svg>레이저<span class="k">3</span></button>
+        <button class="tool" type="button" data-tool="quake" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h4l2-6 3 12 3-9 2 5 2-2h4"/></svg>지진<span class="k">4</span></button>
+        <button class="tool" type="button" data-tool="nuke" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M12 10 8 3.5A9 9 0 0 1 16 3.5zM13.7 13l4 6.5a9 9 0 0 0 4-7zM10.3 13l-4 6.5a9 9 0 0 1-4-7z"/></svg>핵폭탄<span class="k">5</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+

@@ -1,0 +1,97 @@
+<title>광덕고 3D 캠퍼스</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gothic+A1:wght@400;600;800&display=swap">
+<style>
+/* Layout: full-bleed 3D campus; school-green HUD cards pinned to corners; building labels float over the scene */
+:root{
+  --panel:rgba(255,255,255,.9);--panel-line:rgba(28,48,38,.14);--ink:#1c2a23;--ink-2:#4f6158;
+  --accent:#2f7d4f;--accent-ink:#ffffff;--chip:#eef3ef;--label:rgba(24,30,28,.82);--label-ink:#ffffff;--sky:#cfdbe6;
+  --f-display:"Do Hyeon","Gothic A1",system-ui,sans-serif;--f-ui:"Gothic A1",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--panel:rgba(22,30,27,.88);--panel-line:rgba(220,235,226,.14);--ink:#e8efe9;--ink-2:#a9b8af;--accent:#5fbf86;--accent-ink:#0f1f16;--chip:#2a3832;--label:rgba(14,18,16,.85);--label-ink:#f2f5f3;--sky:#1a2230;color-scheme:dark}}
+:root[data-theme="dark"]{--panel:rgba(22,30,27,.88);--panel-line:rgba(220,235,226,.14);--ink:#e8efe9;--ink-2:#a9b8af;--accent:#5fbf86;--accent-ink:#0f1f16;--chip:#2a3832;--label:rgba(14,18,16,.85);--label-ink:#f2f5f3;--sky:#1a2230;color-scheme:dark}
+html,body{height:100%}
+body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--f-ui);overflow:hidden;touch-action:none}
+#app{position:relative;height:100%}
+#stage{position:absolute;inset:0}
+#stage canvas{display:block;width:100%;height:100%}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;transform:translate(-50%,-100%);background:var(--label);color:var(--label-ink);font:600 12px var(--f-ui);padding:3px 8px;border-radius:4px;white-space:nowrap;pointer-events:auto;cursor:pointer}
+.lbl::after{content:"";position:absolute;left:50%;bottom:-4px;width:1px;height:4px;background:var(--label)}
+#labels.off .lbl,#labels.off .room{display:none}
+.hud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;gap:10px;
+  padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:12px}
+.card{pointer-events:auto;background:var(--panel);border:1px solid var(--panel-line);border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.title{padding:9px 14px 10px}
+.title h1{margin:0;font:400 24px/1.15 var(--f-display);letter-spacing:.01em}
+.title h1 em{font-style:normal;color:var(--accent)}
+.title p{margin:3px 0 0;font-size:12px;color:var(--ink-2)}
+.tools{padding:6px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.btn{font:600 13px var(--f-ui);color:var(--ink);background:var(--chip);border:1px solid transparent;border-radius:7px;padding:7px 11px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+@media (min-width:700px){.bottom{flex-wrap:nowrap}}
+.views{padding:6px;display:flex;gap:6px;flex-wrap:wrap}
+.info{width:min(320px,100%);padding:12px 14px 13px;display:grid;gap:6px}
+.info h2{margin:0;font:400 20px var(--f-display);display:flex;align-items:baseline;gap:8px}
+.info h2 small{font:600 12px var(--f-ui);color:var(--ink-2)}
+.info p{margin:0;font-size:13px;line-height:1.55;color:var(--ink)}
+.info .src{font-size:11px;color:var(--ink-2)}
+.info .x{justify-self:end;margin-top:-4px}
+.floors{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.floors .btn{padding:6px 10px}
+.room{position:absolute;left:0;top:0;background:rgba(255,255,255,.92);color:#1c2a23;font:700 11px var(--f-ui);padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;border:1px solid rgba(28,48,38,.18)}
+.hint{justify-self:start;font-size:12px;color:var(--ink-2);background:var(--panel);border-radius:6px;padding:3px 8px}
+[hidden]{display:none!important}
+@media (max-width:560px){.title h1{font-size:20px}.title p{display:none}.btn{padding:6px 9px;font-size:12px}.info{width:100%}}
+</style>
+
+<div id="app">
+  <div id="stage"></div>
+  <div id="labels"></div>
+  <div class="hud">
+    <div class="top">
+      <div class="card title">
+        <h1><em>광덕고</em> 3D 캠퍼스</h1>
+        <p>광주 서구 화정로 202 · 2023년 평면도 기준</p>
+      </div>
+      <div class="card tools">
+        <button class="btn" id="b-night" type="button" aria-pressed="false">밤</button>
+        <button class="btn" id="b-labels" type="button" aria-pressed="true">이름표</button>
+        <button class="btn" id="b-spin" type="button" aria-pressed="false">자동 회전</button>
+      </div>
+    </div>
+    <div class="bottom">
+      <div style="display:grid;gap:6px;pointer-events:none;flex:1 1 300px;min-width:0;justify-items:start">
+        <div class="card views" role="group" aria-label="시점">
+          <button class="btn" data-view="all" type="button">전경</button>
+          <button class="btn" data-view="top" type="button">위에서</button>
+          <button class="btn" data-view="front" type="button">만대관 정면</button>
+          <button class="btn" data-view="road" type="button">광장 길</button>
+          <button class="btn" data-view="facade" type="button">운동장에서</button>
+          <button class="btn" data-view="court" type="button">중정</button>
+          <button class="btn" data-view="garden" type="button">정원</button>
+          <button class="btn" data-view="gym" type="button">체육관 언덕</button>
+          <button class="btn" data-view="field" type="button">운동장</button>
+        </div>
+        <div class="hint">드래그: 회전 · 우클릭 드래그: 이동 · 휠: 확대 · 건물을 누르면 층별로 안을 볼 수 있어요</div>
+      </div>
+      <div class="card info" id="info" hidden>
+        <button class="btn x" id="info-x" type="button" aria-label="설명 닫기">닫기</button>
+        <h2 id="info-name"></h2>
+        <p id="info-desc"></p>
+        <div class="floors" id="floors" role="group" aria-label="층 선택"></div>
+        <p class="src" id="info-src"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
