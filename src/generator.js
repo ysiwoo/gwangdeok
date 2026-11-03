@@ -29,7 +29,7 @@ const DOORISH=t=>t==='hall'||t==='conn'||t==='stair';
 // local box → world box
 function lbox(b,u0,u1,v0,v1,y0,y1){const[x0,z0,x1,z1]=wRect(b,u0,v0,u1,v1);return{x:(x0+x1)/2,z:(z0+z1)/2,y:(y0+y1)/2,sx:x1-x0,sz:z1-z0,sy:y1-y0}}
 function splitLen(a,b,step){const n=Math.max(1,Math.round((b-a)/step));return Array.from({length:n+1},(_,i)=>a+(b-a)*i/n)}
-function extStyle(b,f,t){if(b.gym)return'gym';if(t==='conn')return'ribbon';if(b.ribbonTop&&f===b.ribbonTop)return'ribbon';if(b.blankBelow&&f<=b.blankBelow)return'blank';if(t==='storage'||t==='void')return'blank';return'win'}
+function extStyle(b,f,t,r){if(b.gym)return'gym';if(b.bigWin&&b.bigWin(f,r))return'big';if(t==='conn')return'ribbon';if(b.ribbonTop&&f===b.ribbonTop)return'ribbon';if(b.blankBelow&&f<=b.blankBelow)return'blank';if(t==='storage'||t==='void')return'blank';return'win'}
 const GEN={parts:[],plans:{},solar:[],labels:{}};
 function genBuilding(b){
   const fl=floorList(b),parts=GEN.parts,P=(o)=>{o.b=b;parts.push(o);return o};
@@ -39,15 +39,16 @@ function genBuilding(b){
     const g=grid([rooms]),id=cover(g,rooms);b.plan[f]={rooms,g,id,y0,fh,W:(u,v)=>toW(b,u,v),lx:lxOf(b)};
     rooms.forEach(r=>{const w=wRect(b,r.u0,r.v0,r.u1,r.v1);bb=[Math.min(bb[0],w[0]),Math.min(bb[1],w[1]),Math.max(bb[2],w[2]),Math.max(bb[3],w[3])]});
     const seg=edges(g,id).map(s=>{const ra=s.a>=0?rooms[s.a]:null,rc=s.c>=0?rooms[s.c]:null;
-      if(!ra||!rc){const inside=ra||rc;s.kind='ext';s.out=ra?1:-1;s.style=extStyle(b,f,inside.t);return s}
+      if(!ra||!rc){const inside=ra||rc;s.kind='ext';s.out=ra?1:-1;s.style=extStyle(b,f,inside.t,inside);return s}
       if(ra.n===rc.n&&ra.t===rc.t)return null;if(OPEN(ra.t)&&OPEN(rc.t))return null;
       if(ra.t==='void'||rc.t==='void'){if(ra.t==='void'&&rc.t==='void')return null;s.kind='rail';return s}
       s.kind='part';s.door=(DOORISH(ra.t)&&!DOORISH(rc.t))||(DOORISH(rc.t)&&!DOORISH(ra.t));return s}).filter(Boolean);
     const ms=merge(seg,s=>s.kind==='ext'?'e'+s.out+s.style:s.kind==='rail'?'r':'p'+Math.min(s.a,s.c)+'_'+Math.max(s.a,s.c));
     ms.forEach(s=>{
       if(s.kind==='ext'){const step=b.bay*2;const cuts=splitLen(s.s0,s.s1,step);
-        for(let k=0;k<cuts.length-1;k++){const a=cuts[k],c=cuts[k+1];const w=s.ax==='u'?(s.out>0?[s.at-TW,s.at]:[s.at,s.at+TW]):null,h=s.ax==='v'?(s.out>0?[s.at-TW,s.at]:[s.at,s.at+TW]):null;
-          const bx=s.ax==='u'?lbox(b,w[0],w[1],a,c,y0,wallTop):lbox(b,a,c,h[0],h[1],y0,wallTop);const n=s.ax==='u'?dirW(b,s.out,0):dirW(b,0,s.out);
+        const big=s.style==='big',e=big?.04:0,top=big?y0+fh:wallTop;   // the dining-hall glass runs through the floor slab
+        for(let k=0;k<cuts.length-1;k++){const a=cuts[k],c=cuts[k+1];const w=s.ax==='u'?(s.out>0?[s.at-TW,s.at+e]:[s.at-e,s.at+TW]):null,h=s.ax==='v'?(s.out>0?[s.at-TW,s.at+e]:[s.at-e,s.at+TW]):null;
+          const bx=s.ax==='u'?lbox(b,w[0],w[1],a,c,y0,top):lbox(b,a,c,h[0],h[1],y0,top);const n=s.ax==='u'?dirW(b,s.out,0):dirW(b,0,s.out);
           P({...bx,k:'ext',f,m:s.style,nx:n[0],nz:n[1],lu:s.ax==='u'?s.at-s.out*.5:(a+c)/2,lv:s.ax==='u'?(a+c)/2:s.at-s.out*.5,len:c-a})}}
       else if(s.kind==='rail'){const bx=s.ax==='u'?lbox(b,s.at-.05,s.at+.05,s.s0,s.s1,y0,y0+1.1):lbox(b,s.s0,s.s1,s.at-.05,s.at+.05,y0,y0+1.1);P({...bx,k:'rail',f,m:'rail'})}
       else{const L=s.s1-s.s0;let gaps=[];if(s.door&&L>=2.2)gaps=L>=6?[[s.s0+.6,s.s0+1.6],[s.s1-1.6,s.s1-.6]]:[[s.s0+.5,s.s0+1.4]];
@@ -71,13 +72,14 @@ function genBuilding(b){
   });
   b.bbox=bb;b.top=topY;b.cx=(bb[0]+bb[2])/2;b.cz=(bb[1]+bb[3])/2;
 }
+// small buildings on sloping ground stand on a level pad cut at the height of the ground under their middle
+BLD.forEach(b=>{if(!b.pad)return;let bb=[1e9,1e9,-1e9,-1e9];b.floors[1].forEach(r=>{const w=wRect(b,r.u0,r.v0,r.u1,r.v1);bb=[Math.min(bb[0],w[0]),Math.min(bb[1],w[1]),Math.max(bb[2],w[2]),Math.max(bb[3],w[3])]});
+  if(b.base==='auto')b.base=Math.round(GH((bb[0]+bb[2])/2,(bb[1]+bb[3])/2)*10)/10;PADS.push({x0:bb[0]-2,z0:bb[1]-2,x1:bb[2]+2,z1:bb[3]+2,h:b.base})});
 BLD.forEach(genBuilding);
 // building-specific extras from the drawings
 {const m=BLD.find(b=>b.id==='mandae');[25,30,35,40,45,50,55].forEach(u=>{const[x,z]=toW(m,u,21.9);GEN.parts.push({b:m,k:'col',f:1,m:'col',round:true,x,z,y:(3*3.6-SLAB)/2,sx:.9,sz:.9,sy:3*3.6-SLAB})});
  const g=BLD.find(b=>b.id==='gwichon');[[36.1,.4],[43.8,.4],[52.5,.4],[36.1,14.8],[43.8,14.8],[48.3,14.8],[52.8,14.8],[59.1,14.8]].forEach(([u,v])=>{const[x,z]=toW(g,u,v);GEN.parts.push({b:g,k:'col',f:1,m:'col',x,z,y:(3.6-SLAB)/2,sx:.6,sz:.6,sy:3.6-SLAB})});
  const gy=BLD.find(b=>b.id==='gym');{const[x0,z0,x1,z1]=wRect(gy,-1.8,-1.8,46.8,36.8);const yT=y0Of(gy,3);
    GEN.parts.push({b:gy,k:'roof',f:2,m:'roof:'+gy.roof,x:(x0+x1)/2,z:(z0+z1)/2,y:yT+.2,sx:x1-x0,sz:z1-z0,sy:.4});
-   const[a0,c0,a1,c1]=wRect(gy,-5.25,8.6,0,26.4);GEN.parts.push({b:gy,k:'slab',f:1,m:'slab',x:(a0+a1)/2,z:(c0+c1)/2,y:gy.base+.15,sx:a1-a0,sz:c1-c0,sy:.3});
-   const[e0,f0,e1,f1]=wRect(gy,-4.5,8.6,0,26.4);GEN.parts.push({b:gy,k:'roof',f:1,m:'roof:'+gy.roof,x:(e0+e1)/2,z:(f0+f1)/2,y:gy.base+4.2,sx:e1-e0,sz:f1-f0,sy:.3});
-   [[-4.2,9],[-4.2,17.5],[-4.2,26]].forEach(([u,v])=>{const[x,z]=toW(gy,u,v);GEN.parts.push({b:gy,k:'col',f:1,m:'col',x,z,y:gy.base+2.05,sx:.4,sz:.4,sy:4.1})})}
+   const[a0,c0,a1,c1]=wRect(gy,-5.25,6,0,29);GEN.parts.push({b:gy,k:'slab',f:1,m:'slab',x:(a0+a1)/2,z:(c0+c1)/2,y:gy.base-.15,sx:a1-a0,sz:c1-c0,sy:.3})}
 }

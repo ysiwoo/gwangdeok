@@ -32,11 +32,30 @@ function speckle(g,w,h,n,cols,a){for(let i=0;i<n;i++){g.globalAlpha=a*rnd();g.fi
 const shade=(hex,k)=>{const c=new THREE.Color(hex);c.multiplyScalar(k);return '#'+c.getHexString()};
 const col=new THREE.Color(),dummy=new THREE.Object3D();
 // site plan in true metres (x east, z south along the campus grid, which runs 10.25° clockwise of true north), traced from a satellite photo
-// ---------- terrain: the gym and its car park stand on a ~4 m plateau, reached by a ramp down the main road ----------
-const HILL=4;
-const plateau=(x,z)=>sm((z-103.2)/1.4)*(1-sm((z-155)/5))*sm((x+64)/4)*(1-sm((x-27)/2));
-const rampF=(x,z)=>sm((z-64)/36)*(1-sm((z-155)/5))*sm((x-11.5)/1.5)*(1-sm((x-24.5)/2));
-const GH=(x,z)=>HILL*Math.max(plateau(x,z),rampF(x,z));
+// ---------- terrain ----------
+// natural ground from SRTM elevation samples (10 m grid over x,z = -200..200, 0.5 m steps from 40 m above sea level; 42.3 m = the main road),
+// flattened under the buildings, sunk 1.5 m for the field (granite stands along its west side), a plateau for the gym and its car park,
+// stone retaining walls along the north and west edges, and 만대동산, the wooded hill south-east of the field
+const E_GRID='EFHJJJIHGEDDEEEDBBBA@?>>>>>>>=<;976544456|FGHIJJIGFEDDDDDDBBBA?>>>>>>>=;;:876543456|FGHJJJJHFEDDDDDDCBB@?>>>>>=<;::9765432445|HGHJJJJIFDDDDDDDDCA@@?>>>=;:::98643222344|HHIJJJJIFEDDDEFEDBA@@@>=<<;:::87531112244|HJJJJJJIHFEDDEFEDBA@?>=<<<;::986420001233|IJJJJJJJIGEDDEFFEDA?>=<<;::::975320001222|IJJJJJJJJHECDEFEDCA?>=<;;::::976431000121|HHIIIIJJIGDDDEECBBB@><:99:::::87542101220|FGGGHHHIGFDCDDCBBBA?<:76689:::98653112210|EFFFGGFFFEDCBCBBBA?=:7545689:::9764322221|DDEEEEDDDDBAAABA@?=:74334578::::876643222|DDDDDDCBBAA@@@@@>=;7532234579:::987654222|DDDDDDB@@@@@@@@?=;86532224569;;;;97665345|CDDDDCB@@@@@@@@?=:75432234568;<<;:9766678|CDDCBBB@@@@@@?>?=:86432234578;<<;:97689:;|CDDCBBB@@@@@@?>><:8642223468:;<<;98889:;<|CCCCBBBBA@??@>=<;9754322357:;<<<;:99:;<=>|BBBBBBBBA?>>>=;;:8644433469;<<<<;;;:;<=?A|BBBBBBBB@?>==<;98764444568:=>>>===<<<>?@B|BBBBBBBA@?=<<<;9876444458;>?@A@@@?>>?@AAB|BBBBBBBB@?=<;::987544446:=@BBBCBAAAABCCCC|BBBBBBBBB@><;::976544448;=ADDEEDBBCCCDEED|BBBBBBBBBA><<;::97544569;>BEFGHGFFFFEFFFF|BBCDCCCBBB?==<:::865568:<?BFHIIIIIHHHHGGG|BBDDDDDDCA@??=;::98878:<>@CGJKKJJJIIIIIHH|BBDDDDDDCB@@@@><;;;::;<=?ADHKLLLLLLKKJJJI|BCDDDDDDDCBAAA@?>>=>>???@BDGJKKMNONNMLKKK|BCDDDDDDDDCCCBBAAAAABCBBABEGIJKMPPONMLLLL|BCDDDDDDDDEFECCCCDDDEEEDCDEHIJMOPQPNLLLLL|DEEEDDDDDEFFEDDEFFFGGGGEDEGHJLNOQRQONMMML|DFFFEDDDEGGFFFFGHGGHHHHGGGGILMNPRRQONNNNM|EFFFEDEFGHHHGGGHHHHHHHIIIIIKMOQSSRPONNNNN|FGGFFFFGHHHHHHHHIJIIIJJJKLLMOQSTSQPOOONNN|HHHHHGHIIHHHHHHIJJJJJKLKLNOPPQSTSQPPPPONN|HHIIIIIJJJJIIIJJJJJJJLLMNOPQRRSTRQPPPPONN|IIJKJJKLKKKKKLLLKKKJKLMNOPPQRRSTRPPPPPNNN|JJJKLKLMMLLMNNNNMLLLMNOPQQPPQRRSRPPPPPNNN|JKKLLMNNNOOOOOPPNNNMNOPQRRRQRRRRRPONONMNO|KLLLMNOOOPQQPPRRPOOONNPQRRRRRRRRQPOMMLLMN|LLLLMOQQQRSSRQRRRPPPNNPRRRRRRRRRQPOMJIILM'.split('|'),E0=42.3;
+const srtm=(x,z)=>{const fx=Math.min(39.999,Math.max(0,(x+200)/10)),fz=Math.min(39.999,Math.max(0,(z+200)/10)),i=fx|0,j=fz|0,a=fx-i,b=fz-j,e=(r,c)=>40+(E_GRID[r].charCodeAt(c)-48)/2;
+  return (e(j,i)*(1-a)+e(j,i+1)*a)*(1-b)+(e(j+1,i)*(1-a)+e(j+1,i+1)*a)*b-E0};
+const HILL=8,FIELD_Y=-1.5;
+const box=(x,z,x0,z0,x1,z1,w)=>sm((x-x0)/w+.5)*sm((x1-x)/w+.5)*sm((z-z0)/w+.5)*sm((z1-z)/w+.5);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const PADS=[]; // flat pads under small buildings that sit on sloping ground (filled in by the generator)
+function GH(x,z){
+  let h=srtm(x,z)-3*box(x,z,26,58,150,180,12);                                   // SE woods: take off the tree canopy SRTM sees
+  const dWall=z<-93.3&&x<-12?-93.3-z:(x<-104.8&&z<29.5?-104.8-x:(x<-87.4&&z>=29.5&&z<104?-87.4-x:0));
+  if(dWall>0)h=Math.min(h,2.6+.35*dWall);                                         // ground behind the retaining walls
+  const core=Math.max(box(x,z,-104.8,-93.3,-12,40,1),box(x,z,-12,-92,12.5,40,10),box(x,z,-87.4,29.5,12.5,80,1),box(x,z,-87.4,77,12.5,103.4,1),box(x,z,12.5,-95,29.5,56,3));
+  h=lerp(h,0,core);
+  h=lerp(h,HILL*sm((z-55)/48),sm((x-11.5)/1.5)*(1-sm((x-24.5)/2))*sm((z-50)/8)*(1-sm((z-104)/2)));   // ramp up the main road
+  h=lerp(h,HILL+2.5*sm((z-146)/12),sm((z-102.6)/1.2)*sm((x+66)/4)*(1-sm((x-24)/10)));                  // gym plateau
+  const dOut=Math.max(0,Math.hypot(x-FIELD.x,Math.max(0,Math.abs(z-FIELD.z)-FIELD.half))-FIELD.r);
+  h=lerp(h,FIELD_Y,(1-sm(dOut/2.5))*sm((x-29.2)/2.2));                            // the field, sunk below the road
+  for(const p of PADS)h=lerp(h,p.h,box(x,z,p.x0,p.z0,p.x1,p.z1,3));
+  h=lerp(h,7.5,box(x,z,33,106,51,149,3));                                         // red clay court terrace on the hill
+  return h*(1-sm((Math.max(Math.abs(x),Math.abs(z))-175)/25))}
 // ---------- field: sand track (stadium outline) round an artificial-turf pitch ----------
 const FIELD={x:65.75,z:-19.25,r:41.5,half:41.5,turf:[38,-70,101,31]};
 function inStadium(x,z,pad){const dx=x-FIELD.x,dz=z-FIELD.z,r=FIELD.r+pad;if(Math.abs(dz)<=FIELD.half)return Math.abs(dx)<r;const cz=dz>0?FIELD.half:-FIELD.half;return dx*dx+(dz-cz)**2<r*r}

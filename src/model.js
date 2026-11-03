@@ -84,7 +84,7 @@ R.domElement.addEventListener('pointerup',e=>{if(!downAt||Math.hypot(e.clientX-d
   ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,cam);const h=ray.intersectObjects(pickables,false).find(h=>h.object.visible&&h.object.parent&&h.object.parent.visible!==false);if(h&&h.object.userData.b)showInfo(h.object.userData.b)});
 // ---------- views ----------
 const VIEWS={all:[[160,170,250],[-10,0,15]],top:[[-8,440,22],[-8,0,15]],front:[[40,24,-4],[-14,8,-21]],road:[[17,6,62],[16,4,-90]],facade:[[70,9,-21],[-15,9,-21]],
-  court:[[-150,70,-100],[-59,4,-23]],garden:[[0,45,112],[-28,4,55]],gym:[[60,50,200],[-30,8,128]],field:[[190,75,-150],[66,0,-19]]};
+  court:[[-150,70,-100],[-59,4,-23]],garden:[[0,45,112],[-28,4,55]],gym:[[60,45,190],[-28,14,128]],field:[[190,75,-150],[66,0,-19]]};
 let tw=null;
 function go(name){const [p,t]=VIEWS[name];tw={fp:cam.position.clone(),ft:C.target.clone(),tp:new THREE.Vector3(...p),tt:new THREE.Vector3(...t),t:0}}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
