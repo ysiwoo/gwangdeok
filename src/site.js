@@ -148,7 +148,10 @@ const white=plainMat(0xf4f4ef,{roughness:.5}),steel=plainMat(0xd9dcdf,{metalness
  const fas=new THREE.Mesh(new THREE.BoxGeometry(.12,.35,11),plainMat(0xd8423a));fas.position.set(3.2,4.62,0);P.add(fas);
  P.position.set(24.6,0,-21);P.traverse(o=>{o.castShadow=true;o.receiveShadow=true});S.add(P);
  // granite stands: the terrace edge drops 1.5 m to the field in three seat-steps along the west straight
- const gran=plainMat(0xa9a69e,{roughness:.85}),SZ0=-60.5,SZ1=22;[[28.6,29.05,0],[29.05,29.9,-.5],[29.9,30.75,-1]].forEach(([x0,x1,top])=>{const m=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,top+1.9,SZ1-SZ0),gran);m.position.set((x0+x1)/2,(top-1.9)/2,(SZ0+SZ1)/2);m.castShadow=m.receiveShadow=true;S.add(m)});
+ const gran=plainMat(0xb8b4aa,{roughness:.8}),joint=plainMat(0x6d6a63,{roughness:.9}),SZ0=-60.5,SZ1=22,SL=SZ1-SZ0;
+ [0,1,2,3].forEach(k=>{const x0=28.4+k*.8,top=-.05-k*.4,m=new THREE.Mesh(new THREE.BoxGeometry(.8,top+2.2,SL),gran);m.position.set(x0+.4,(top-2.2)/2,(SZ0+SZ1)/2);m.castShadow=m.receiveShadow=true;S.add(m);
+   const j=new THREE.Mesh(new THREE.BoxGeometry(.03,.36,SL),joint);j.position.set(x0+.8+.016,top-.2,(SZ0+SZ1)/2);S.add(j);for(let z=SZ0+3;z<SZ1;z+=3){const c=new THREE.Mesh(new THREE.BoxGeometry(.8,.4,.03),joint);c.position.set(x0+.4,top-.18,z);S.add(c)}});
+ [SZ0,SZ1].forEach(z=>{const e=new THREE.Mesh(new THREE.BoxGeometry(3.4,1.6,.4),gran);e.position.set(30,-.75,z);e.castShadow=true;S.add(e)});
  const [fc,fx]=canvas(192,128);fx.fillStyle='#fff';fx.fillRect(0,0,192,128);fx.save();fx.translate(96,64);fx.rotate(-.59);fx.fillStyle='#cd2e3a';fx.beginPath();fx.arc(0,0,32,Math.PI,0);fx.fill();fx.fillStyle='#0047a0';fx.beginPath();fx.arc(0,0,32,0,Math.PI);fx.fill();
  fx.fillStyle='#cd2e3a';fx.beginPath();fx.arc(-16,0,16,0,Math.PI*2);fx.fill();fx.fillStyle='#0047a0';fx.beginPath();fx.arc(16,0,16,0,Math.PI*2);fx.fill();fx.restore();
  fx.fillStyle='#111';[[34,24,-.98],[158,24,.98],[34,104,.98],[158,104,-.98]].forEach(([x,y,r])=>{fx.save();fx.translate(x,y);fx.rotate(r);for(let k=-1;k<=1;k++)fx.fillRect(-14,k*7-2,28,4.5);fx.restore()});
@@ -264,6 +267,23 @@ hedge(-56,39.7,-12,39.7,.7,.55);hedge(-7,39.7,2,39.7,.7,.55);                   
 {const hm=inst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x3f6630,roughness:.95}),hedges,(p,d)=>{d.position.set(p.x,GH(p.x,p.z)+p.h/2,p.z);d.rotation.set(0,p.ry,0);d.scale.set(p.l,p.h,p.w)});hedges.forEach((p,i)=>hm.setColorAt(i,col.set(0x3f6630).multiplyScalar(rr(.85,1.15))));
  inst(new THREE.BoxGeometry(1,1,1),plainMat(0xc7c3ba,{roughness:.8}),kerbs,(p,d)=>{d.position.set(p.x,GH(p.x,p.z)+.12,p.z);d.rotation.set(0,p.ry,0);d.scale.set(p.l,.25,.2)});
  const rk=[];seed=909;for(let z=80;z<113;z+=.9)rk.push({x:24.7+rr(-.15,.15),z,s:rr(.35,.6)});inst(new THREE.DodecahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:0xa9a59c,roughness:.95,flatShading:true}),rk,(p,d)=>{d.position.set(p.x,GH(p.x,p.z)+p.s*.35,p.z);d.rotation.set(rnd(),rnd()*3,rnd());d.scale.set(p.s*1.2,p.s*.8,p.s)})}
+// school boundary (photos 0845/0897/0904/0740): a low stone wall with a black steel bar fence on top, all the way round the campus
+{const [c,x]=canvas(256,128);x.clearRect(0,0,256,128);x.fillStyle='#1b1d1f';for(let i=4;i<256;i+=16)x.fillRect(i,4,4,124);x.fillRect(0,4,256,6);x.fillRect(0,96,256,5);
+ for(let i=4;i<256;i+=16){x.beginPath();x.moveTo(i-2,6);x.lineTo(i+2,0);x.lineTo(i+6,6);x.fill()}
+ const ft=tex(c),fm=new THREE.MeshStandardMaterial({map:ft,alphaTest:.5,side:THREE.DoubleSide,roughness:.5,metalness:.5}),
+   sm2=plainMat(0x8e8a80,{roughness:.9}),cap=plainMat(0xc4c0b6,{roughness:.8}),post=plainMat(0x1b1d1f,{metalness:.5,roughness:.5});
+ const GATES=[[-4,-116,8,-116],[3,155,14,155]],gap=(x,z)=>GATES.some(([a,b,c2,d])=>x>=Math.min(a,c2)-.5&&x<=Math.max(a,c2)+.5&&Math.abs(z-b)<1.5);
+ const segs=[];for(let i=0;i<CAMPUS.length;i++){const[a,b]=CAMPUS[i],[c2,d]=CAMPUS[(i+1)%CAMPUS.length],L=Math.hypot(c2-a,d-b),n=Math.ceil(L/3);
+   for(let k=0;k<n;k++){const t=(k+.5)/n,x=a+(c2-a)*t,z=b+(d-b)*t;if(gap(x,z))continue;segs.push({x,z,l:L/n+.02,ry:-Math.atan2(d-b,c2-a),y:GH(x,z)})}}
+ inst(new THREE.BoxGeometry(1,1,1),sm2,segs,(p,d)=>{d.position.set(p.x,p.y+.25,p.z);d.rotation.set(0,p.ry,0);d.scale.set(p.l,.9,.35)});
+ inst(new THREE.BoxGeometry(1,1,1),cap,segs,(p,d)=>{d.position.set(p.x,p.y+.72,p.z);d.rotation.set(0,p.ry,0);d.scale.set(p.l,.06,.42)});
+ inst(new THREE.PlaneGeometry(1,1),fm,segs,(p,d)=>{d.position.set(p.x,p.y+.75+.8,p.z);d.rotation.set(0,p.ry,0);d.scale.set(p.l,1.6,1)});
+ inst(new THREE.BoxGeometry(.1,1.8,.1),post,segs,(p,d)=>{d.position.set(p.x+Math.cos(p.ry)*p.l/2,p.y+.75+.9,p.z-Math.sin(p.ry)*p.l/2);d.rotation.set(0,p.ry,0);d.scale.set(1,1,1)});
+ // south gate (photo 0740): brick piers, a banner frame over the opening, and steps up from the gym forecourt to the street
+ const br=plainMat(0x7a4433,{roughness:.85}),gy=GH(8.5,155);[3,14].forEach(xx=>{const p=new THREE.Mesh(new THREE.BoxGeometry(.8,2.4,.8),br);p.position.set(xx,gy+1.2,155);p.castShadow=true;S.add(p)});
+ const fr=new THREE.Mesh(new THREE.BoxGeometry(11.2,.12,.12),post);fr.position.set(8.5,gy+3.3,155);S.add(fr);[3,14].forEach(xx=>{const q=new THREE.Mesh(new THREE.BoxGeometry(.1,1,.1),post);q.position.set(xx,gy+2.8,155);S.add(q)});
+ plane(textTex([{t:'광덕중·고등학교에 오신 것을 환영합니다',y:.5,s:40,w:700}],1024,80,'#f4f2ec','#1d4f9c',40),9,.6,8.5,gy+2.95,154.9,Math.PI);
+ for(let k=0;k<4;k++){const st=new THREE.Mesh(new THREE.BoxGeometry(10.4,.18*(k+1),.45),plainMat(0xb3afa6,{roughness:.85}));st.position.set(8.5,gy-.6+.09*(k+1),153.2+k*.45);st.receiveShadow=true;S.add(st)}}
 const decorEnd=S.children.length;
 // ---------- things fixed to buildings (signs, banners, clock, canopies, solar panels, AC units, downpipes) ----------
 const onB=[];const att=(o,b)=>{o.userData.onB=b;onB.push(o);return o};
@@ -273,19 +293,26 @@ const onB=[];const att=(o,b)=>{o.userData.onB=b;onB.push(o);return o};
  const[mx,mz]=toW(m,21,22.5);att(plane(textTex([{t:'만대관',y:.5}],512,160,null,'#f3e4bf',118),3.2,.75,mx+.08,4*3.6-.75,mz,Math.PI/2,true),m);
  const[cx,cz]=toW(m,38,22.5);const ck=new THREE.Mesh(new THREE.CircleGeometry(.62,32),plainMat(0xf7f5ef,{roughness:.4}));ck.rotation.y=Math.PI/2;ck.position.set(cx+.07,4*3.6-.8,cz);S.add(ck);att(ck,m);
  const rim=new THREE.Mesh(new THREE.RingGeometry(.58,.66,32),plainMat(0x2f3a40));rim.rotation.y=Math.PI/2;rim.position.set(cx+.08,4*3.6-.8,cz);S.add(rim);att(rim,m);
- const bnz=toW(m,10,0)[1]+.33;att(plane(textTex([{t:'민족혼이 살아',y:.11,s:76},{t:'숨 쉬는 학교',y:.24,s:76},{t:'이제 세계로! 미래로!',y:.39,s:54,c:'#ffffff'},{t:'◆ 글로벌 인재양성 프로그램 운영',y:.52,s:30,w:600,c:'#ffffff'},{t:'◆ 창업교육거점센터 운영',y:.6,s:30,w:600,c:'#ffffff'},{t:'광덕중·고등학교',y:.93,s:34,c:'#ffffff'}],512,672,'#1f4f9c','#f2c230',76),3.8,5,-8.9,10.4,bnz,0),m);
+ const bnx=m.X0+21+.33;att(plane(textTex([{t:'민족혼이 살아',y:.11,s:76},{t:'숨 쉬는 학교',y:.24,s:76},{t:'이제 세계로! 미래로!',y:.39,s:54,c:'#ffffff'},{t:'◆ 글로벌 인재양성 프로그램 운영',y:.52,s:30,w:600,c:'#ffffff'},{t:'◆ 창업교육거점센터 운영',y:.6,s:30,w:600,c:'#ffffff'},{t:'광덕중·고등학교',y:.93,s:34,c:'#ffffff'}],512,672,'#1f4f9c','#f2c230',76),3.8,5,bnx,10.4,.5,Math.PI/2),m);
  const jx=j.X0+.06;att(plane(textTex([{t:'꿈이 이루어지는 광덕중학교',y:.25,s:44,w:600,c:'#f3e4bf'},{t:'청운관',y:.68,s:120}],720,220,null,'#f3e4bf',120),3.4,1.05,jx,13.4,-62.4,Math.PI/2,true),j);
  att(plane(textTex([{t:'조롱보다',y:.14,s:44,w:600,c:'#3a4b2c'},{t:'존중을,',y:.25,s:84,c:'#d23f6f'},{t:'편견보다',y:.4,s:44,w:600,c:'#3a4b2c'},{t:'배려를,',y:.51,s:84,c:'#7a3fa8'},{t:'비방보다',y:.66,s:44,w:600,c:'#3a4b2c'},{t:'이해를',y:.77,s:84,c:'#2f7d4f'}],256,720,'#f4f6e8','#3a4b2c',44),3.2,8.6,jx,8.6,-57.6,Math.PI/2),j);
  const cm=plainMat(0xe9e6df,{roughness:.6}),add=(geo,mat,x,y,z)=>{const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;S.add(o);att(o,d);return o};
  // 덕린관 entrance (photos 0775/0779): thin canopy with a dark sign band over glass doors, a stone landing with a railed ramp, and the white "K-교육" storefront box
  const [gc2,gx2]=canvas(256,96);gx2.fillStyle='#22303a';gx2.fillRect(0,0,256,96);gx2.fillStyle='#7d97a6';for(let i=0;i<8;i++)gx2.fillRect(4+i*31.5,6,27,84);gx2.fillStyle='#c9ced2';gx2.fillRect(0,0,256,5);gx2.fillRect(0,40,256,3);const glassT=tex(gc2);
- add(new THREE.BoxGeometry(8.8,.22,2.6),cm,-7.6,3.35,17.25);
- att(plane(textTex([{t:'새로운 세계에 눈뜨게 하는 교육 · 광덕고등학교',y:.5,s:40,w:600}],1024,80,'#2b2f33','#f2efe6',40),8.8,.62,-7.6,3.12,15.93,Math.PI),d);
- att(plane(glassT,8.2,2.85,-7.6,1.88,18.44,Math.PI),d);
- add(new THREE.BoxGeometry(8.8,.45,2),plainMat(0xb9b5ad,{roughness:.8}),-7.6,.22,17.5);
- {const L=7.4,a=Math.atan2(.45,L),r=add(new THREE.BoxGeometry(L,.2,1.6),plainMat(0xa9a59d,{roughness:.85}),-3.2+L/2,.12,17.3);r.rotation.z=-a;
-  for(let i=0;i<=12;i++){const x=-12+i*(L+8.8)/12,y=x<-3.2?.45:.45*(1-(x+3.2)/L);add(new THREE.BoxGeometry(.04,.9,.04),steel,x,y+.45,16.45)}
-  add(new THREE.BoxGeometry(8.8,.05,.05),steel,-7.6,1.35,16.45);add(new THREE.BoxGeometry(L+.1,.05,.05),steel,-3.2+L/2,.9+.22,16.45).rotation.z=-a}
+ const dark=plainMat(0x2b2f33,{roughness:.6}),landM=plainMat(0xb9b5ad,{roughness:.8}),rampM=plainMat(0xa9a59d,{roughness:.85}),LH=.48,fz=18.5;
+ add(new THREE.BoxGeometry(9.4,.18,3.2),cm,-7.6,3.45,fz-1.6);add(new THREE.BoxGeometry(9.4,.7,.25),dark,-7.6,3.2,fz-3.2);
+ att(plane(textTex([{t:'새로운 세계에 눈뜨게 하는 교육 · 광덕고등학교',y:.5,s:40,w:600}],1024,80,null,'#f2efe6',40),9,.55,-7.6,3.2,fz-3.33,Math.PI),d);
+ [-11.9,-3.3].forEach(x=>add(new THREE.BoxGeometry(.25,3.2,.25),dark,x,1.6+LH/2,fz-2.9));
+ {const [c,x]=canvas(512,192);x.fillStyle='#3a4248';x.fillRect(0,0,512,192);x.fillStyle='#8aa3b1';for(let i=0;i<6;i++){x.fillRect(8+i*84,10,72,176)}x.fillStyle='#c9ced2';x.fillRect(0,0,512,8);x.fillRect(0,60,512,4);
+  x.fillStyle='#d7dbdd';[176,260].forEach(xx=>x.fillRect(xx-1,90,3,40));const t=tex(c);att(plane(t,8.2,2.9,-7.6,LH+1.45,fz-.06,Math.PI),d)}
+ add(new THREE.BoxGeometry(9.4,LH,3),landM,-7.6,LH/2,fz-1.5);
+ for(let k=0;k<3;k++)add(new THREE.BoxGeometry(4.4,LH*(k+1)/3-.02,.34),landM,-10,(LH*(k+1)/3)/2,fz-3-(3-k)*.34+.17);
+ {const g=plainMat(0xe0b33a,{roughness:.7});add(new THREE.BoxGeometry(.3,.02,3),g,-7.6,LH+.01,fz-1.5);add(new THREE.BoxGeometry(.3,.02,1.1),g,-10,.01,fz-4.6)}
+ {const L=8,a=Math.atan2(LH,L),x0=-2.9,r=add(new THREE.BoxGeometry(L,.24,1.5),rampM,x0+L/2,LH/2,fz-2.25);r.rotation.z=-a;
+  const wall=add(new THREE.BoxGeometry(L,.25,.18),rampM,x0+L/2,LH/2+.18,fz-3.05);wall.rotation.z=-a;
+  [fz-3.05,fz-1.45].forEach(zr=>{for(let i=0;i<=10;i++){const xx=x0+i*L/10,y=LH*(1-i/10);add(new THREE.BoxGeometry(.04,.9,.04),steel,xx,y+.45,zr)}
+    add(new THREE.BoxGeometry(L+.05,.05,.05),steel,x0+L/2,LH/2+.9,zr).rotation.z=-a;add(new THREE.BoxGeometry(L+.05,.04,.04),steel,x0+L/2,LH/2+.65,zr).rotation.z=-a});
+  for(let i=0;i<=8;i++){const xx=-12.2+i*.98;if(xx>-8.2&&xx<-3)continue;add(new THREE.BoxGeometry(.04,.9,.04),steel,xx,LH+.45,fz-3)}}
  att(plane(glassT,5,2.6,-.2,1.5,21.13,Math.PI),d);add(new THREE.BoxGeometry(5.3,.75,.55),plainMat(0xf4f2ec,{roughness:.6}),-.2,3.1,20.92);
  att(plane(textTex([{t:'K-교육특별시의 빛이 되겠습니다',y:.5,s:40,w:800}],768,96,null,'#1d4f9c',40),4.8,.6,-.2,3.1,20.63,Math.PI),d);
  const jc=new THREE.Mesh(new THREE.BoxGeometry(2.6,.3,5),cm);jc.position.set(-8.7,3.4,-62);jc.castShadow=true;S.add(jc);att(jc,j)}

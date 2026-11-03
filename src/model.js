@@ -36,7 +36,7 @@ BLD.forEach(b=>{b.groups=new Map();const bk=new Map();
   // tiled skirts round the first floor and over the link to the middle school
   const shed=(ua,ub,vIn,vOut,yIn,yOut,curl)=>face([ua,vOut,yOut],[ub,vOut,yOut],[ua,vIn,yIn],[ub,vIn,yIn],curl,16);
   const y1=3.6-SLAB;roof(1,[...[[0,18.1],[26.3,47.2]].map(([a,c2])=>shed(a,c2,3,-1,y1+1.4,y1,.45)),shed(0,47.2,10.8,15.8,y1+1.4,y1,.45)]);
-  roof(2,[shed(18.1,26.3,1.5,-.4,y2+.4,y2,.15),shed(18.1,26.3,1.5,3,y2+.4,y2,.15),shed(47.2,56.7,3.4,2,y2+.3,y2,.1),shed(47.2,56.7,3.4,4.8,y2+.3,y2,.1)])}
+  roof(2,[shed(18.1,26.3,1.5,-.4,y2+.4,y2,.15),shed(18.1,26.3,1.5,3,y2+.4,y2,.15),shed(47.2,52,3.4,2,y2+.3,y2,.1),shed(47.2,52,3.4,4.8,y2+.3,y2,.1),shed(50,56.9,1.45,.1,y2+.3,y2,.1),shed(50,56.9,1.45,2.8,y2+.3,y2,.1)])}
 // ---------- labels ----------
 const labelsEl=$('#labels');
 BLD.forEach(b=>{const el=document.createElement('div');el.className='lbl';el.textContent=b.n;el.addEventListener('click',()=>showInfo(b));labelsEl.appendChild(el);b.el=el;b.anchor=new THREE.Vector3(b.cx,b.top+3,b.cz)});

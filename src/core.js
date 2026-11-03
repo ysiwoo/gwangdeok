@@ -44,7 +44,10 @@ const box=(x,z,x0,z0,x1,z1,w)=>sm((x-x0)/w+.5)*sm((x1-x)/w+.5)*sm((z-z0)/w+.5)*s
 const lerp=(a,b,t)=>a+(b-a)*t;
 const PADS=[]; // flat pads under small buildings that sit on sloping ground (filled in by the generator)
 function GH(x,z){
-  let h=srtm(x,z)-3*box(x,z,26,58,150,180,12);                                   // SE woods: take off the tree canopy SRTM sees
+  let h=srtm(x,z);
+  // 만대동산: SRTM's 30 m grid flattens the wooded hill south-east of the field, so it is shaped here as a rounded summit
+  // about 18 m above the main road (an estimate from the photos; the drawings and SRTM give no exact height)
+  {const w=box(x,z,30,60,114,154,10),hill=3+15*Math.exp(-((x-76)**2/(2*24*24)+(z-114)**2/(2*26*26)));h=lerp(h,Math.max(h,hill),w)}
   const dWall=z<-93.3&&x<-12?-93.3-z:(x<-104.8&&z<29.5?-104.8-x:(x<-87.4&&z>=29.5&&z<104?-87.4-x:0));
   if(dWall>0)h=Math.min(h,2.6+.35*dWall);                                         // ground behind the retaining walls
   const core=Math.max(box(x,z,-104.8,-93.3,-12,40,1),box(x,z,-12,-92,12.5,40,10),box(x,z,-87.4,29.5,12.5,80,1),box(x,z,-87.4,77,12.5,103.4,1),box(x,z,12.5,-95,29.5,56,3));
@@ -54,7 +57,7 @@ function GH(x,z){
   const dOut=Math.max(0,Math.hypot(x-FIELD.x,Math.max(0,Math.abs(z-FIELD.z)-FIELD.half))-FIELD.r);
   h=lerp(h,FIELD_Y,(1-sm(dOut/2.5))*sm((x-29.2)/2.2));                            // the field, sunk below the road
   for(const p of PADS)h=lerp(h,p.h,box(x,z,p.x0,p.z0,p.x1,p.z1,3));
-  h=lerp(h,7.5,box(x,z,33,106,51,149,3));                                         // red clay court terrace on the hill
+  h=lerp(h,8,box(x,z,33,106,51,149,3));                                           // red clay court cut into the hillside
   return h*(1-sm((Math.max(Math.abs(x),Math.abs(z))-175)/25))}
 // ---------- field: sand track (stadium outline) round an artificial-turf pitch ----------
 const FIELD={x:65.75,z:-19.25,r:41.5,half:41.5,turf:[38,-70,101,31]};

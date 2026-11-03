@@ -31,6 +31,17 @@ function lbox(b,u0,u1,v0,v1,y0,y1){const[x0,z0,x1,z1]=wRect(b,u0,v0,u1,v1);retur
 function splitLen(a,b,step){const n=Math.max(1,Math.round((b-a)/step));return Array.from({length:n+1},(_,i)=>a+(b-a)*i/n)}
 function extStyle(b,f,t,r){if(b.gym)return'gym';if(b.bigWin&&b.bigWin(f,r))return'big';if(t==='conn')return'ribbon';if(b.ribbonTop&&f===b.ribbonTop)return'ribbon';if(b.blankBelow&&f<=b.blankBelow)return'blank';if(t==='storage'||t==='void')return'blank';return'win'}
 const GEN={parts:[],plans:{},solar:[],labels:{}};
+// every room of every building in world space, so a wall can see what lies on its other side
+const ROOMW=[];
+const roomAt=(rooms,u,v)=>rooms.find(r=>u>r.u0&&u<r.u1&&v>r.v0&&v<r.v1);
+// split an outer wall segment into the pieces that stay solid: it opens where, on the same floor, the room behind it in another
+// building is a link corridor, or where the rooms on both sides are corridors/stairs (buildings joined wall to wall)
+function portalPieces(b,s,rooms,y0,y1){const st=.25,open=[];
+  for(let t=s.s0+st/2;t<s.s1;t+=st){const lo=s.ax==='u'?[s.at+s.out*.4,t]:[t,s.at+s.out*.4],li=s.ax==='u'?[s.at-s.out*.4,t]:[t,s.at-s.out*.4];
+    const inside=roomAt(rooms,li[0],li[1]);if(!inside)continue;const[X,Z]=toW(b,lo[0],lo[1]);
+    const R=ROOMW.find(R=>R.b!==b&&X>R.x0&&X<R.x1&&Z>R.z0&&Z<R.z1&&Math.min(y1,R.y1)-Math.max(y0,R.y0)>1.5);
+    if(R&&(R.t==='conn'||inside.t==='conn'||(DOORISH(R.t)&&DOORISH(inside.t)))){const last=open[open.length-1];if(last&&Math.abs(last[1]-(t-st/2))<1e-6)last[1]=t+st/2;else open.push([t-st/2,t+st/2])}}
+  let pieces=[[s.s0,s.s1]];open.filter(([a,c])=>c-a>=.9).forEach(([g0,g1])=>{pieces=pieces.flatMap(([a,c])=>g1<=a||g0>=c?[[a,c]]:[[a,g0],[g1,c]].filter(p=>p[1]-p[0]>.05))});return pieces}
 function genBuilding(b){
   const fl=floorList(b),parts=GEN.parts,P=(o)=>{o.b=b;parts.push(o);return o};
   b.plan={};let bb=[1e9,1e9,-1e9,-1e9],topY=0;
@@ -42,14 +53,15 @@ function genBuilding(b){
       if(!ra||!rc){const inside=ra||rc;s.kind='ext';s.out=ra?1:-1;s.style=extStyle(b,f,inside.t,inside);return s}
       if(ra.n===rc.n&&ra.t===rc.t)return null;if(OPEN(ra.t)&&OPEN(rc.t))return null;
       if(ra.t==='void'||rc.t==='void'){if(ra.t==='void'&&rc.t==='void')return null;s.kind='rail';return s}
-      s.kind='part';s.door=(DOORISH(ra.t)&&!DOORISH(rc.t))||(DOORISH(rc.t)&&!DOORISH(ra.t));return s}).filter(Boolean);
+      s.kind='part';s.door=OPEN(ra.t)||OPEN(rc.t);return s}).filter(Boolean);
     const ms=merge(seg,s=>s.kind==='ext'?'e'+s.out+s.style:s.kind==='rail'?'r':'p'+Math.min(s.a,s.c)+'_'+Math.max(s.a,s.c));
     ms.forEach(s=>{
-      if(s.kind==='ext'){const step=b.bay*2;const cuts=splitLen(s.s0,s.s1,step);
+      if(s.kind==='ext'){const step=b.bay*2;
         const big=s.style==='big',e=big?.04:0,top=big?y0+fh:wallTop;   // the dining-hall glass runs through the floor slab
+        portalPieces(b,s,rooms,y0,y0+fh).forEach(([p0,p1])=>{const cuts=splitLen(p0,p1,step);
         for(let k=0;k<cuts.length-1;k++){const a=cuts[k],c=cuts[k+1];const w=s.ax==='u'?(s.out>0?[s.at-TW,s.at+e]:[s.at-e,s.at+TW]):null,h=s.ax==='v'?(s.out>0?[s.at-TW,s.at+e]:[s.at-e,s.at+TW]):null;
           const bx=s.ax==='u'?lbox(b,w[0],w[1],a,c,y0,top):lbox(b,a,c,h[0],h[1],y0,top);const n=s.ax==='u'?dirW(b,s.out,0):dirW(b,0,s.out);
-          P({...bx,k:'ext',f,m:s.style,nx:n[0],nz:n[1],lu:s.ax==='u'?s.at-s.out*.5:(a+c)/2,lv:s.ax==='u'?(a+c)/2:s.at-s.out*.5,len:c-a})}}
+          P({...bx,k:'ext',f,m:s.style,nx:n[0],nz:n[1],lu:s.ax==='u'?s.at-s.out*.5:(a+c)/2,lv:s.ax==='u'?(a+c)/2:s.at-s.out*.5,len:c-a})}})}
       else if(s.kind==='rail'){const bx=s.ax==='u'?lbox(b,s.at-.05,s.at+.05,s.s0,s.s1,y0,y0+1.1):lbox(b,s.s0,s.s1,s.at-.05,s.at+.05,y0,y0+1.1);P({...bx,k:'rail',f,m:'rail'})}
       else{const L=s.s1-s.s0;let gaps=[];if(s.door&&L>=2.2)gaps=L>=6?[[s.s0+.6,s.s0+1.6],[s.s1-1.6,s.s1-.6]]:[[s.s0+.5,s.s0+1.4]];
         let pieces=[[s.s0,s.s1]];gaps.forEach(([g0,g1])=>{pieces=pieces.flatMap(([a,c])=>g1<=a||g0>=c?[[a,c]]:[[a,g0],[g1,c]].filter(p=>p[1]-p[0]>.05))});
@@ -75,6 +87,7 @@ function genBuilding(b){
 // small buildings on sloping ground stand on a level pad cut at the height of the ground under their middle
 BLD.forEach(b=>{if(!b.pad)return;let bb=[1e9,1e9,-1e9,-1e9];b.floors[1].forEach(r=>{const w=wRect(b,r.u0,r.v0,r.u1,r.v1);bb=[Math.min(bb[0],w[0]),Math.min(bb[1],w[1]),Math.max(bb[2],w[2]),Math.max(bb[3],w[3])]});
   if(b.base==='auto')b.base=Math.round(GH((bb[0]+bb[2])/2,(bb[1]+bb[3])/2)*10)/10;PADS.push({x0:bb[0]-2,z0:bb[1]-2,x1:bb[2]+2,z1:bb[3]+2,h:b.base})});
+BLD.forEach(b=>floorList(b).forEach(f=>{const y0=y0Of(b,f),y1=y0+fhOf(b,f);b.floors[f].forEach(r=>{if(r.t==='void')return;const w=wRect(b,r.u0,r.v0,r.u1,r.v1);ROOMW.push({b,t:r.t,x0:w[0],z0:w[1],x1:w[2],z1:w[3],y0,y1})})}));
 BLD.forEach(genBuilding);
 // building-specific extras from the drawings
 {const m=BLD.find(b=>b.id==='mandae');[25,30,35,40,45,50,55].forEach(u=>{const[x,z]=toW(m,u,21.9);GEN.parts.push({b:m,k:'col',f:1,m:'col',round:true,x,z,y:(3*3.6-SLAB)/2,sx:.9,sz:.9,sy:3*3.6-SLAB})});
